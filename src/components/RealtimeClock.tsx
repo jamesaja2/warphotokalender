@@ -11,6 +11,11 @@ interface RealtimeClockProps {
 
 export default function RealtimeClock({ bookingStartTime, onBookingStart }: RealtimeClockProps) {
   const { currentTime, loading, error } = useServerTime()
+  // Helper: convert Date to Asia/Jakarta (WIB)
+  function toJakartaTime(date: Date) {
+    // Get UTC time, then offset +7 jam
+    return new Date(date.getTime() + (7 * 60 * 60 * 1000));
+  }
   const [timeUntilBooking, setTimeUntilBooking] = useState<string>('')
   const [isBookingActive, setIsBookingActive] = useState(false)
   const [mounted, setMounted] = useState(false)
@@ -24,18 +29,19 @@ export default function RealtimeClock({ bookingStartTime, onBookingStart }: Real
     if (!mounted || !currentTime) return
 
     const timer = setInterval(() => {
-      const now = currentTime
-      
+      // Selalu pakai waktu Jakarta
+      const nowJakarta = toJakartaTime(currentTime)
       if (bookingStartTime) {
-        const bookingTime = new Date(bookingStartTime)
-        const timeDiff = bookingTime.getTime() - now.getTime()
+        // bookingStartTime diasumsikan UTC, jadi harus diubah ke Jakarta juga
+        const bookingTimeJakarta = toJakartaTime(new Date(bookingStartTime))
+        const timeDiff = bookingTimeJakarta.getTime() - nowJakarta.getTime()
 
         if (timeDiff > 0) {
           // Before booking time
           const hours = Math.floor(timeDiff / (1000 * 60 * 60))
           const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60))
           const seconds = Math.floor((timeDiff % (1000 * 60)) / 1000)
-          
+
           setTimeUntilBooking(`${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`)
           setIsBookingActive(false)
         } else {
@@ -92,7 +98,9 @@ export default function RealtimeClock({ bookingStartTime, onBookingStart }: Real
     )
   }
 
-  const timeString = `${currentTime.getHours().toString().padStart(2, '0')}:${currentTime.getMinutes().toString().padStart(2, '0')}:${currentTime.getSeconds().toString().padStart(2, '0')}`
+  // Tampilkan waktu Jakarta
+  const jakartaTime = toJakartaTime(currentTime)
+  const timeString = `${jakartaTime.getHours().toString().padStart(2, '0')}:${jakartaTime.getMinutes().toString().padStart(2, '0')}:${jakartaTime.getSeconds().toString().padStart(2, '0')}`
 
   return (
     <div className="bg-white rounded-lg shadow-sm border p-4 space-y-2">
@@ -107,11 +115,12 @@ export default function RealtimeClock({ bookingStartTime, onBookingStart }: Real
       </div>
       
       <div className="text-sm text-gray-500">
-        {currentTime.toLocaleDateString('id-ID', {
+        {jakartaTime.toLocaleDateString('id-ID', {
           weekday: 'long',
           year: 'numeric',
           month: 'long',
-          day: 'numeric'
+          day: 'numeric',
+          timeZone: 'Asia/Jakarta'
         })}
       </div>
 
