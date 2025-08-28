@@ -13,8 +13,26 @@ export default function RealtimeClock({ bookingStartTime, onBookingStart }: Real
   const { currentTime, loading, error } = useServerTime()
   // Helper: convert UTC Date to Asia/Jakarta (WIB)
   function toJakartaTime(utcDate: Date) {
-    // Konversi UTC ke WIB (UTC + 7 jam)
-    return new Date(utcDate.getTime() + (7 * 60 * 60 * 1000));
+    // Gunakan toLocaleString untuk konversi yang benar
+    const wibString = utcDate.toLocaleString('sv-SE', { 
+      timeZone: 'Asia/Jakarta',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    })
+    const wibTime = new Date(wibString)
+    
+    console.log('🕐 Time conversion (new method):', {
+      utc: utcDate.toISOString(),
+      wibString: wibString,
+      wibTime: wibTime.toISOString(),
+      wibHour: wibTime.getHours(),
+      wibMinute: wibTime.getMinutes()
+    })
+    return wibTime
   }
   const [timeUntilBooking, setTimeUntilBooking] = useState<string>('')
   const [isBookingActive, setIsBookingActive] = useState(false)
@@ -29,13 +47,13 @@ export default function RealtimeClock({ bookingStartTime, onBookingStart }: Real
     if (!mounted || !currentTime) return
 
     const timer = setInterval(() => {
-      // currentTime adalah UTC dari server, konversi ke WIB
-      const nowJakarta = toJakartaTime(currentTime)
+      // currentTime adalah UTC dari server, gunakan toLocaleString untuk WIB
       if (bookingStartTime) {
-        // bookingStartTime dari database (UTC), konversi ke WIB juga
+        // Buat Date object WIB untuk perbandingan yang akurat
+        const nowWIB = new Date(currentTime.toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' }))
         const bookingTimeUTC = new Date(bookingStartTime)
-        const bookingTimeJakarta = toJakartaTime(bookingTimeUTC)
-        const timeDiff = bookingTimeJakarta.getTime() - nowJakarta.getTime()
+        const bookingTimeWIB = new Date(bookingTimeUTC.toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' }))
+        const timeDiff = bookingTimeWIB.getTime() - nowWIB.getTime()
 
         if (timeDiff > 0) {
           // Before booking time
@@ -99,9 +117,21 @@ export default function RealtimeClock({ bookingStartTime, onBookingStart }: Real
     )
   }
 
-  // Tampilkan waktu Jakarta (UTC server + 7 jam)
-  const jakartaTime = toJakartaTime(currentTime)
-  const timeString = `${jakartaTime.getHours().toString().padStart(2, '0')}:${jakartaTime.getMinutes().toString().padStart(2, '0')}:${jakartaTime.getSeconds().toString().padStart(2, '0')}`
+  // Tampilkan waktu Jakarta langsung dari currentTime (UTC server)
+  const jakartaTimeString = currentTime.toLocaleString('id-ID', {
+    timeZone: 'Asia/Jakarta',
+    hour12: false,
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  })
+  
+  // Debug log untuk troubleshooting jam
+  console.log('🕐 RealtimeClock Debug (simple):', {
+    serverUTC: currentTime.toISOString(),
+    jakartaString: jakartaTimeString,
+    localWIB: new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' })
+  })
 
   return (
     <div className="bg-white rounded-lg shadow-sm border p-4 space-y-2">
@@ -112,11 +142,11 @@ export default function RealtimeClock({ bookingStartTime, onBookingStart }: Real
       </div>
       
       <div className="text-2xl font-mono font-bold text-gray-900">
-        {timeString}
+        {jakartaTimeString}
       </div>
       
       <div className="text-sm text-gray-500">
-        {jakartaTime.toLocaleDateString('id-ID', {
+        {currentTime.toLocaleDateString('id-ID', {
           weekday: 'long',
           year: 'numeric',
           month: 'long',
