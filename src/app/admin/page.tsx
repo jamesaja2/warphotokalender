@@ -30,7 +30,7 @@ export default function AdminPage() {
 
   async function handleLogin() {
     // Simple password check - in production, use proper authentication
-    if (password === process.env.ADMIN_PASSWORD) {
+    if (password === process.env.NEXT_PUBLIC_ADMIN_PASSWORD) {
       setIsAuthenticated(true)
       localStorage.setItem('admin_authenticated', 'true')
       fetchData()
