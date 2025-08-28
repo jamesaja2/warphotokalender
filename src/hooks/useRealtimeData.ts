@@ -76,28 +76,31 @@ export function useRealtimeData() {
     }
   }
 
+  // Helper: konversi Date ke WIB
+  function toJakartaTime(date: Date) {
+    return new Date(date.getTime() + (7 * 60 * 60 * 1000));
+  }
+
   function updateSystemStatus(settingsData: Settings[], wibTime?: Date) {
     const bookingTimeSetting = settingsData.find(s => s.key === 'booking_start_time')
     const bookingTime = bookingTimeSetting?.value
-    
+
     let isBookingActive = false
     if (bookingTime) {
-      // Use provided local time or get current local time
-      const now = wibTime || new Date()
-      
-      // Parse booking time
-      const startTime = new Date(bookingTime)
-      
+      // Gunakan waktu Jakarta untuk perbandingan
+      const nowJakarta = toJakartaTime(wibTime || new Date())
+      const startTimeJakarta = toJakartaTime(new Date(bookingTime))
+
       // Debug logs untuk troubleshooting
-      console.log('=== BOOKING TIME CHECK ===')
-      console.log('Current local time:', now.toISOString())
+      console.log('=== BOOKING TIME CHECK (WIB) ===')
+      console.log('Current Jakarta time:', nowJakarta.toISOString())
       console.log('Booking start time from DB:', bookingTime)
-      console.log('Parsed booking time:', startTime.toISOString())
-      console.log('Should booking be active?', now >= startTime)
-      console.log('Time difference (minutes):', (now.getTime() - startTime.getTime()) / (1000 * 60))
+      console.log('Parsed booking time (WIB):', startTimeJakarta.toISOString())
+      console.log('Should booking be active?', nowJakarta >= startTimeJakarta)
+      console.log('Time difference (minutes):', (nowJakarta.getTime() - startTimeJakarta.getTime()) / (1000 * 60))
       console.log('========================')
-      
-      isBookingActive = now >= startTime
+
+      isBookingActive = nowJakarta >= startTimeJakarta
     }
 
     // Force re-render by using functional update to ensure component updates
