@@ -33,7 +33,10 @@ const SystemStatusCard = memo(function SystemStatusCard({ status, loading }: Sys
   const formatBookingTime = (timeString: string | null) => {
     if (!timeString) return 'Belum ditentukan'
     try {
-      return format(new Date(timeString), 'dd MMMM yyyy, HH:mm', { locale: id })
+      // Konversi ke WIB untuk tampilan
+      const utcDate = new Date(timeString)
+      const wibDate = new Date(utcDate.getTime() + (7 * 60 * 60 * 1000))
+      return format(wibDate, 'dd MMMM yyyy, HH:mm', { locale: id })
     } catch {
       return 'Format tanggal tidak valid'
     }

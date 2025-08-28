@@ -87,20 +87,20 @@ export function useRealtimeData() {
 
     let isBookingActive = false
     if (bookingTime) {
-      // Gunakan waktu Jakarta untuk perbandingan
-      const nowJakarta = toJakartaTime(wibTime || new Date())
-      const startTimeJakarta = toJakartaTime(new Date(bookingTime))
+      // Perbandingan status booking: gunakan UTC tanpa offset
+      const nowUTC = wibTime || new Date()
+      const startTimeUTC = new Date(bookingTime)
 
       // Debug logs untuk troubleshooting
-      console.log('=== BOOKING TIME CHECK (WIB) ===')
-      console.log('Current Jakarta time:', nowJakarta.toISOString())
+      console.log('=== BOOKING TIME CHECK (UTC) ===')
+      console.log('Current UTC time:', nowUTC.toISOString())
       console.log('Booking start time from DB:', bookingTime)
-      console.log('Parsed booking time (WIB):', startTimeJakarta.toISOString())
-      console.log('Should booking be active?', nowJakarta >= startTimeJakarta)
-      console.log('Time difference (minutes):', (nowJakarta.getTime() - startTimeJakarta.getTime()) / (1000 * 60))
+      console.log('Parsed booking time (UTC):', startTimeUTC.toISOString())
+      console.log('Should booking be active?', nowUTC >= startTimeUTC)
+      console.log('Time difference (minutes):', (nowUTC.getTime() - startTimeUTC.getTime()) / (1000 * 60))
       console.log('========================')
 
-      isBookingActive = nowJakarta >= startTimeJakarta
+      isBookingActive = nowUTC >= startTimeUTC
     }
 
     // Force re-render by using functional update to ensure component updates
