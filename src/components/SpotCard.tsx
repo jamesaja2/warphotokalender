@@ -24,6 +24,8 @@ const SpotCard = memo(function SpotCard({ spot, kelas, onBook, bookingActive }: 
     console.log('===========================')
   }, [bookingActive, spot.name, spot.id])
 
+  // Pastikan bookingActive benar-benar boolean, tidak glitch
+  const isBookingOpen = !!bookingActive
   const availableKelas = kelas.filter(k => k.spot_id === null)
   const isSpotFull = spot.chosen_by.length >= spot.capacity
   const spotsRemaining = spot.capacity - spot.chosen_by.length
@@ -86,7 +88,7 @@ const SpotCard = memo(function SpotCard({ spot, kelas, onBook, bookingActive }: 
         )}
       </div>
 
-      {!isSpotFull && bookingActive && availableKelas.length > 0 && (
+      {!isSpotFull && isBookingOpen && availableKelas.length > 0 && (
         <div className="space-y-3">
           <select
             value={selectedKelas || ''}
@@ -115,7 +117,7 @@ const SpotCard = memo(function SpotCard({ spot, kelas, onBook, bookingActive }: 
         </div>
       )}
 
-      {!bookingActive && (
+      {!isBookingOpen && (
         <div className="bg-yellow-100 text-yellow-800 p-3 rounded-md text-center">
           <Clock className="w-4 h-4 inline mr-2" />
           Booking belum dibuka
