@@ -28,11 +28,11 @@ export function useRealtimeData() {
     
     // Setup periodic updates for system status using server time
     const statusInterval = setInterval(() => {
-      // Force update booking status every second to check if time has passed
+      // Update booking status setiap 2 detik untuk menghindari glitch
       if (settings.length > 0 && mounted && currentTime) {
         updateSystemStatus(settings, currentTime)
       }
-    }, 1000) // Update every second for real-time status
+    }, 2000) // Update setiap 2 detik (tidak 1 detik)
     
     // Update active users every 10 seconds
     const userInterval = setInterval(() => {
@@ -76,47 +76,56 @@ export function useRealtimeData() {
     }
   }
 
-  // Helper: konversi Date ke WIB
-  function toJakartaTime(date: Date) {
-    return new Date(date.getTime() + (7 * 60 * 60 * 1000));
+  // Helper: konversi UTC Date ke WIB
+  function toJakartaTime(utcDate: Date) {
+    return new Date(utcDate.getTime() + (7 * 60 * 60 * 1000));
   }
 
-  function updateSystemStatus(settingsData: Settings[], wibTime?: Date) {
+  function updateSystemStatus(settingsData: Settings[], utcTime?: Date) {
     const bookingTimeSetting = settingsData.find(s => s.key === 'booking_start_time')
     const bookingTime = bookingTimeSetting?.value
 
     let isBookingActive = false
     if (bookingTime) {
-      // Perbandingan status booking: gunakan UTC tanpa offset
-      const nowUTC = wibTime || new Date()
+      // currentTime adalah UTC dari server, konversi ke WIB
+      const nowJakarta = toJakartaTime(utcTime || new Date())
+      // bookingTime dari database (UTC), konversi ke WIB
       const startTimeUTC = new Date(bookingTime)
+      const startTimeJakarta = toJakartaTime(startTimeUTC)
 
       // Debug logs untuk troubleshooting
-      console.log('=== BOOKING TIME CHECK (UTC) ===')
-      console.log('Current UTC time:', nowUTC.toISOString())
-      console.log('Booking start time from DB:', bookingTime)
-      console.log('Parsed booking time (UTC):', startTimeUTC.toISOString())
-      console.log('Should booking be active?', nowUTC >= startTimeUTC)
-      console.log('Time difference (minutes):', (nowUTC.getTime() - startTimeUTC.getTime()) / (1000 * 60))
+      console.log('=== BOOKING TIME CHECK (UTC→WIB) ===')
+      console.log('Server UTC time:', (utcTime || new Date()).toISOString())
+      console.log('Current WIB time:', nowJakarta.toISOString())
+      console.log('Booking time from DB (UTC):', bookingTime)
+      console.log('Booking time WIB:', startTimeJakarta.toISOString())
+      console.log('Should booking be active?', nowJakarta >= startTimeJakarta)
+      console.log('Time difference (minutes):', (nowJakarta.getTime() - startTimeJakarta.getTime()) / (1000 * 60))
       console.log('========================')
 
-      isBookingActive = nowUTC >= startTimeUTC
+      isBookingActive = nowJakarta >= startTimeJakarta
     }
 
     // Force re-render by using functional update to ensure component updates
     setSystemStatus(prev => {
       // Only update if there's actually a change to prevent unnecessary renders
+      // Tambah delay kecil untuk mencegah glitch rapid switching
       if (prev.booking_active !== isBookingActive || prev.booking_start_time !== (bookingTime || null)) {
         console.log('*** BOOKING STATUS CHANGED ***')
         console.log('Previous status:', prev.booking_active)
         console.log('New status:', isBookingActive)
         console.log('******************************')
         
-        return {
-          ...prev,
-          booking_active: isBookingActive,
-          booking_start_time: bookingTime || null
-        }
+        // Delay update untuk mencegah glitch
+        setTimeout(() => {
+          setSystemStatus(current => ({
+            ...current,
+            booking_active: isBookingActive,
+            booking_start_time: bookingTime || null
+          }))
+        }, 100) // 100ms delay
+        
+        return prev // Return unchanged untuk sementara
       }
       return prev
     })
