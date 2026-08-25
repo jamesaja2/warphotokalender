@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Clock, Calendar } from 'lucide-react'
+import { Clock } from 'lucide-react'
 import { useServerTime } from '@/hooks/useServerTime'
 
 interface RealtimeClockProps {
@@ -11,29 +11,6 @@ interface RealtimeClockProps {
 
 export default function RealtimeClock({ bookingStartTime, onBookingStart }: RealtimeClockProps) {
   const { currentTime, loading, error } = useServerTime()
-  // Helper: convert UTC Date to Asia/Jakarta (WIB)
-  function toJakartaTime(utcDate: Date) {
-    // Gunakan toLocaleString untuk konversi yang benar
-    const wibString = utcDate.toLocaleString('sv-SE', { 
-      timeZone: 'Asia/Jakarta',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
-    })
-    const wibTime = new Date(wibString)
-    
-    console.log('🕐 Time conversion (new method):', {
-      utc: utcDate.toISOString(),
-      wibString: wibString,
-      wibTime: wibTime.toISOString(),
-      wibHour: wibTime.getHours(),
-      wibMinute: wibTime.getMinutes()
-    })
-    return wibTime
-  }
   const [timeUntilBooking, setTimeUntilBooking] = useState<string>('')
   const [isBookingActive, setIsBookingActive] = useState(false)
   const [mounted, setMounted] = useState(false)

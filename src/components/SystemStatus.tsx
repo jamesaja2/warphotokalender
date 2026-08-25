@@ -5,7 +5,7 @@ import { SystemStatus } from '@/types/database'
 import { format } from 'date-fns'
 import { id } from 'date-fns/locale'
 import { memo } from 'react'
-import { useServerTime } from '@/hooks/useServerTime'
+
 
 interface SystemStatusProps {
   status: SystemStatus
@@ -14,7 +14,6 @@ interface SystemStatusProps {
 
 // Use memo to prevent unnecessary re-renders
 const SystemStatusCard = memo(function SystemStatusCard({ status, loading }: SystemStatusProps) {
-  const { currentTime } = useServerTime()
   
   if (loading) {
     return (

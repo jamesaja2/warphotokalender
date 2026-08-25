@@ -37,7 +37,7 @@ export default function Home() {
       console.log('Booking Start Time:', systemStatus.booking_start_time)
       console.log('============================')
     }
-  }, [systemStatus.booking_active, mounted])
+  }, [systemStatus.booking_active, systemStatus.booking_start_time, mounted])
 
   // Simulate queue system for high traffic
   useEffect(() => {
@@ -78,7 +78,7 @@ export default function Home() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Memuat sistem rebutan spot foto...</p>
+          <p className="text-gray-600">Memuat sistem WAR Tema Proficiat...</p>
         </div>
       </div>
     )
@@ -99,10 +99,10 @@ export default function Home() {
             <Camera className="w-8 h-8 text-blue-600" />
             <div>
               <h1 className="text-3xl font-bold text-gray-900">
-                Sistem Rebutan Spot Foto
+                WAR Tema Proficiat
               </h1>
               <p className="text-gray-600 mt-1">
-                Pilih spot foto terbaik untuk kelas Anda - Satu kelas, satu pilihan!
+                Pilih tema terbaik untuk kelas Anda.
               </p>
             </div>
           </div>
@@ -123,7 +123,7 @@ export default function Home() {
               <div>
                 <h4 className="text-green-800 font-semibold">Booking Sekarang Aktif!</h4>
                 <p className="text-green-700 text-sm mt-1">
-                  Anda sekarang bisa mulai memilih spot foto. Jangan tunda, slot terbatas!
+                  Anda sekarang bisa mulai memilih tema.
                 </p>
               </div>
               <button 
@@ -147,8 +147,7 @@ export default function Home() {
             <div>
               <h4 className="text-yellow-800 font-semibold">Penting!</h4>
               <p className="text-yellow-700 text-sm mt-1">
-                Jangan refresh halaman ini! Sistem akan otomatis update ketika waktu booking dimulai. 
-                Tetap di halaman ini untuk mendapatkan akses booking tercepat.
+                Sistem akan otomatis update ketika waktu booking dimulai.
               </p>
             </div>
           </div>
@@ -178,7 +177,7 @@ export default function Home() {
             <div className="flex items-center gap-3">
               <Camera className="w-8 h-8 text-green-600" />
               <div>
-                <p className="text-sm text-gray-600">Total Spot Foto</p>
+                <p className="text-sm text-gray-600">Total Tema</p>
                 <p className="text-2xl font-bold text-gray-900">{spots.length}</p>
               </div>
             </div>
@@ -207,12 +206,12 @@ export default function Home() {
 
         {/* Spots Grid */}
         <div className="mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">Daftar Spot Foto</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">Daftar Tema</h2>
           
           {spots.length === 0 ? (
             <div className="bg-white rounded-lg shadow p-8 text-center">
               <Camera className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600">Belum ada spot foto yang tersedia</p>
+              <p className="text-gray-600">Belum ada tema yang tersedia</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -253,8 +252,8 @@ export default function Home() {
         <div className="mt-8 bg-blue-50 rounded-lg p-6">
           <h3 className="font-semibold text-blue-800 mb-3">Petunjuk Penggunaan:</h3>
           <ul className="text-sm text-blue-700 space-y-1">
-            <li>• Setiap kelas hanya bisa memilih SATU spot foto</li>
-            <li>• Setiap spot memiliki kapasitas terbatas</li>
+            <li>• Setiap kelas hanya bisa memilih SATU tema</li>
+            <li>• Setiap tema memiliki kapasitas terbatas</li>
             <li>• Booking hanya bisa dilakukan pada waktu yang telah ditentukan</li>
             <li>• Pilihan bersifat final dan tidak dapat diubah</li>
             <li>• Sistem akan update secara real-time</li>
@@ -266,7 +265,7 @@ export default function Home() {
       <footer className="bg-white border-t mt-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <p className="text-center text-gray-600">
-            Sistem Rebutan Spot Foto - Dibuat dengan ❤️ oleh{' '}
+            WAR Tema Proficiat - Dibuat oleh{' '}
             <a 
               href="https://github.com/jamesaja2" 
               target="_blank" 

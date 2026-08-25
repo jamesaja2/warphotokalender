@@ -46,9 +46,11 @@ export function useRealtimeData() {
       clearInterval(statusInterval)
       clearInterval(userInterval)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mounted, settings, currentTime]) // Add currentTime to dependency
 
   // Separate effect for settings changes to update status immediately
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (settings.length > 0 && mounted && currentTime) {
       updateSystemStatus(settings, currentTime)

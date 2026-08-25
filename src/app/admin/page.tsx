@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { Settings, Clock, Users, RefreshCw, Shield, AlertTriangle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
@@ -18,6 +18,7 @@ export default function AdminPage() {
   const supabase = createClient()
   const router = useRouter()
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     // Check if already authenticated (simple session check)
     const isAuth = localStorage.getItem('admin_authenticated') === 'true'
@@ -124,11 +125,11 @@ export default function AdminPage() {
         .insert({ name, capacity, chosen_by: [] })
 
       if (error) throw error
-      setMessage('Spot berhasil ditambahkan!')
+      setMessage('Tema berhasil ditambahkan!')
       fetchData()
     } catch (error) {
       console.error('Error adding spot:', error)
-      setMessage('Error menambahkan spot!')
+      setMessage('Error menambahkan tema!')
     } finally {
       setLoading(false)
     }
@@ -264,7 +265,7 @@ export default function AdminPage() {
             <div className="flex items-center gap-3">
               <Settings className="w-8 h-8 text-green-600" />
               <div>
-                <p className="text-sm text-gray-600">Total Spot</p>
+                <p className="text-sm text-gray-600">Total Tema</p>
                 <p className="text-2xl font-bold">{spots.length}</p>
               </div>
             </div>
@@ -340,7 +341,7 @@ export default function AdminPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
           {/* Add Spot */}
           <div className="bg-white rounded-lg shadow-lg p-6">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">Tambah Spot Foto</h3>
+            <h3 className="text-lg font-bold text-gray-900 mb-4">Tambah Tema</h3>
             <form onSubmit={(e) => {
               e.preventDefault()
               const formData = new FormData(e.target as HTMLFormElement)
@@ -355,7 +356,7 @@ export default function AdminPage() {
                 <input
                   name="spot_name"
                   type="text"
-                  placeholder="Nama Spot (e.g., Pohon Cinta)"
+                  placeholder="Nama Tema (e.g., Vintage)"
                   className="w-full p-3 border border-gray-300 rounded-md"
                   required
                 />
@@ -373,7 +374,7 @@ export default function AdminPage() {
                   disabled={loading}
                   className="w-full bg-green-600 text-white py-3 rounded-md hover:bg-green-700 disabled:opacity-50"
                 >
-                  Tambah Spot
+                  Tambah Tema
                 </button>
               </div>
             </form>
@@ -415,7 +416,7 @@ export default function AdminPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Spots Table */}
           <div className="bg-white rounded-lg shadow-lg p-6">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">Daftar Spot Foto</h3>
+            <h3 className="text-lg font-bold text-gray-900 mb-4">Daftar Tema</h3>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>

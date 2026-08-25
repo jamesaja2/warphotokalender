@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Sistem Rebutan Spot Foto",
-  description: "Sistem real-time untuk booking spot foto dengan queue management dan admin panel",
+  title: "WAR Tema Proficiat",
+  description: "Sistem real-time untuk pemilihan tema Proficiat",
 };
 
 export default function RootLayout({
