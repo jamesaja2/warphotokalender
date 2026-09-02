@@ -30,14 +30,26 @@ export default function AdminPage() {
   }, []) // Empty dependency array is intentional for initial auth check
 
   async function handleLogin() {
-    // Simple password check - in production, use proper authentication
-    if (password === process.env.NEXT_PUBLIC_ADMIN_PASSWORD) {
-      setIsAuthenticated(true)
-      localStorage.setItem('admin_authenticated', 'true')
-      fetchData()
-      setMessage('Login berhasil!')
-    } else {
-      setMessage('Password salah!')
+    setLoading(true)
+    try {
+      const response = await fetch('/api/admin-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password })
+      })
+
+      if (response.ok) {
+        setIsAuthenticated(true)
+        localStorage.setItem('admin_authenticated', 'true')
+        fetchData()
+        setMessage('Login berhasil!')
+      } else {
+        setMessage('Password salah!')
+      }
+    } catch (err) {
+      setMessage('Terjadi kesalahan saat login.')
+    } finally {
+      setLoading(false)
     }
   }
 

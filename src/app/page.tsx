@@ -7,6 +7,7 @@ import SpotCard from '@/components/SpotCard'
 import SystemStatusCard from '@/components/SystemStatus'
 import QueueDisplay from '@/components/QueueDisplay'
 import RealtimeClock from '@/components/RealtimeClock'
+import { useSession, signOut } from 'next-auth/react'
 
 export default function Home() {
   const { spots, kelas, systemStatus, loading, bookSpot } = useRealtimeData()
@@ -14,6 +15,12 @@ export default function Home() {
   const [estimatedWaitTime, setEstimatedWaitTime] = useState(0)
   const [mounted, setMounted] = useState(false)
   const [showBookingAlert, setShowBookingAlert] = useState(false)
+  
+  const { data: userSession, status } = useSession()
+
+  const handleLogout = async () => {
+    await signOut({ callbackUrl: '/login' })
+  }
 
   // Ensure component is mounted before running client-side logic
   useEffect(() => {
@@ -73,15 +80,21 @@ export default function Home() {
     checkQueueStatus()
   }, [systemStatus.active_users, mounted])
 
-  if (loading) {
+  if (loading || status === 'loading') {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Memuat sistem WAR Tema Proficiat...</p>
+          <p className="text-gray-600">Memuat sistem WAR Tema Kalender...</p>
         </div>
       </div>
     )
+  }
+
+  // If user is not authenticated, redirect to login (handled by middleware usually, but just in case)
+  if (status === 'unauthenticated' && mounted) {
+    window.location.href = '/login'
+    return null
   }
 
   const availableKelas = kelas.filter(k => k.spot_id === null)
@@ -92,20 +105,36 @@ export default function Home() {
       {/* Queue Display Overlay */}
       <QueueDisplay position={queuePosition} estimatedWaitTime={estimatedWaitTime} />
 
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center gap-3">
-            <Camera className="w-8 h-8 text-blue-600" />
+      <header className="bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-gray-100 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex justify-between items-center">
+          <div className="flex items-center gap-4">
+            <div className="bg-gradient-to-br from-blue-500 to-indigo-600 p-2.5 rounded-xl text-white shadow-md">
+              <Camera className="w-6 h-6" />
+            </div>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">
-                WAR Tema Proficiat
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-600 tracking-tight">
+                WAR Tema Kalender
               </h1>
-              <p className="text-gray-600 mt-1">
-                Pilih tema terbaik untuk kelas Anda.
+              <p className="text-sm sm:text-base text-gray-500 font-medium">
+                Pilih tema terbaik untuk kelas Anda
               </p>
             </div>
           </div>
+          
+          {userSession && (
+            <div className="flex items-center gap-4">
+              <div className="text-right hidden sm:block">
+                <p className="text-sm font-medium text-gray-900">{userSession.user?.name || userSession.user?.email?.split('@')[0]}</p>
+                <p className="text-xs text-gray-500">{userSession.user?.email}</p>
+              </div>
+              <button 
+                onClick={handleLogout}
+                className="text-sm bg-red-50 text-red-600 hover:bg-red-100 px-4 py-2 rounded-md font-medium transition-colors"
+              >
+                Logout
+              </button>
+            </div>
+          )}
         </div>
       </header>
 
@@ -265,15 +294,7 @@ export default function Home() {
       <footer className="bg-white border-t mt-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <p className="text-center text-gray-600">
-            WAR Tema Proficiat - Dibuat oleh{' '}
-            <a 
-              href="https://github.com/jamesaja2" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-blue-600 hover:text-blue-800 underline font-medium"
-            >
-              James Timothy
-            </a>
+            WAR Tema Kalender
           </p>
         </div>
       </footer>

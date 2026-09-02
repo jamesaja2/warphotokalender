@@ -7,13 +7,12 @@ import { Spot, Kelas } from '@/types/database'
 interface SpotCardProps {
   spot: Spot
   kelas: Kelas[]
-  onBook: (spotId: number, kelasId: number) => Promise<{ success: boolean; message: string }>
+  onBook: (spotId: number) => Promise<{ success: boolean; message: string }>
   bookingActive: boolean
 }
 
 // Use memo to prevent unnecessary re-renders
 const SpotCard = memo(function SpotCard({ spot, kelas, onBook, bookingActive }: SpotCardProps) {
-  const [selectedKelas, setSelectedKelas] = useState<number | null>(null)
   const [isBooking, setIsBooking] = useState(false)
 
   // Debug logging for booking status changes
@@ -26,18 +25,20 @@ const SpotCard = memo(function SpotCard({ spot, kelas, onBook, bookingActive }: 
 
   // Pastikan bookingActive benar-benar boolean, tidak glitch
   const isBookingOpen = !!bookingActive
-  const availableKelas = kelas.filter(k => k.spot_id === null)
   const isSpotFull = spot.chosen_by.length >= spot.capacity
   const spotsRemaining = spot.capacity - spot.chosen_by.length
 
   const handleBook = async () => {
-    if (!selectedKelas || isBooking) return
+    if (isBooking) return
+
+    if (!confirm(`Apakah Anda yakin ingin memilih spot "${spot.name}" untuk kelas Anda? Pilihan tidak dapat diubah.`)) {
+      return
+    }
 
     setIsBooking(true)
     try {
-      const result = await onBook(spot.id, selectedKelas)
+      const result = await onBook(spot.id)
       if (result.success) {
-        setSelectedKelas(null)
         alert(result.message)
       } else {
         alert(result.message)
@@ -51,88 +52,79 @@ const SpotCard = memo(function SpotCard({ spot, kelas, onBook, bookingActive }: 
   }
 
   return (
-    <div className={`bg-white rounded-lg shadow-lg p-6 border-2 transition-all duration-300 ${
-      isSpotFull ? 'border-red-300 bg-red-50' : 'border-green-300 hover:border-green-500'
+    <div className={`group bg-white rounded-2xl shadow-sm hover:shadow-xl p-7 border transition-all duration-300 transform hover:-translate-y-1 ${
+      isSpotFull ? 'border-red-100 bg-red-50/30' : 'border-gray-100 hover:border-blue-200'
     }`}>
-      <div className="flex items-center gap-2 mb-4">
-        <MapPin className="w-5 h-5 text-green-600" />
-        <h3 className="text-xl font-bold text-gray-800">{spot.name}</h3>
+      <div className="flex items-start justify-between mb-5">
+        <div className="flex items-center gap-3">
+          <div className={`p-3 rounded-xl ${isSpotFull ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
+            <MapPin className="w-6 h-6" />
+          </div>
+          <h3 className="text-xl font-bold text-gray-800 leading-tight">{spot.name}</h3>
+        </div>
       </div>
 
-      <div className="space-y-3 mb-4">
-        <div className="flex items-center gap-2 text-gray-600">
-          <Users className="w-4 h-4" />
-          <span>Kapasitas: {spot.capacity} kelas</span>
-        </div>
-        
-        <div className={`text-sm font-medium ${
-          spotsRemaining > 0 ? 'text-green-600' : 'text-red-600'
-        }`}>
-          {spotsRemaining > 0 ? `${spotsRemaining} slot tersisa` : 'PENUH'}
+      <div className="space-y-4 mb-6">
+        <div className="flex items-center justify-between text-sm">
+          <div className="flex items-center gap-2 text-gray-500">
+            <Users className="w-4 h-4" />
+            <span>Kapasitas: {spot.capacity} kelas</span>
+          </div>
+          <div className={`font-semibold px-3 py-1 rounded-full ${
+            spotsRemaining > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+          }`}>
+            {spotsRemaining > 0 ? `${spotsRemaining} sisa` : 'PENUH'}
+          </div>
         </div>
 
         {spot.chosen_by.length > 0 && (
-          <div className="mt-3">
-            <p className="text-sm font-medium text-gray-700 mb-2">Kelas yang sudah memilih:</p>
-            <div className="flex flex-wrap gap-1">
-              {spot.chosen_by.map((kelasName, index) => (
-                <span
+          <div className="pt-4 border-t border-gray-100">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Dipesan oleh:</p>
+            <div className="flex flex-col gap-2">
+              {spot.chosen_by.map((bookingStr, index) => (
+                <div
                   key={index}
-                  className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full"
+                  className="flex items-center gap-2 bg-gradient-to-r from-blue-50 to-indigo-50/50 text-blue-800 text-xs px-3 py-2.5 rounded-lg border border-blue-100/50"
                 >
-                  {kelasName}
-                </span>
+                  <div className="w-1.5 h-1.5 rounded-full bg-blue-400"></div>
+                  {bookingStr}
+                </div>
               ))}
             </div>
           </div>
         )}
       </div>
 
-      {!isSpotFull && isBookingOpen && availableKelas.length > 0 && (
-        <div className="space-y-3">
-          <select
-            value={selectedKelas || ''}
-            onChange={(e) => setSelectedKelas(Number(e.target.value))}
-            className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
-          >
-            <option value="">Pilih Kelas</option>
-            {availableKelas.map((k) => (
-              <option key={k.id} value={k.id}>
-                {k.name}
-              </option>
-            ))}
-          </select>
-
+      {!isSpotFull && isBookingOpen && (
+        <div className="mt-6 pt-2">
           <button
             onClick={handleBook}
-            disabled={!selectedKelas || isBooking}
-            className={`w-full py-2 px-4 rounded-md font-medium transition-colors ${
-              selectedKelas && !isBooking
-                ? 'bg-green-600 hover:bg-green-700 text-white'
-                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+            disabled={isBooking}
+            className={`w-full py-3 px-4 rounded-xl font-semibold transition-all duration-200 flex items-center justify-center gap-2 ${
+              !isBooking
+                ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-md hover:shadow-lg transform active:scale-95'
+                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
             }`}
           >
-            {isBooking ? 'Memproses...' : 'Pilih Spot Ini'}
+            {isBooking ? (
+               <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+            ) : (
+              'Pilih Spot Ini'
+            )}
           </button>
         </div>
       )}
 
       {!isBookingOpen && (
-        <div className="bg-yellow-100 text-yellow-800 p-3 rounded-md text-center">
-          <Clock className="w-4 h-4 inline mr-2" />
+        <div className="bg-amber-50 text-amber-700 p-3.5 rounded-xl text-center mt-6 text-sm font-medium flex items-center justify-center gap-2 border border-amber-200/50">
+          <Clock className="w-4 h-4" />
           Booking belum dibuka
         </div>
       )}
 
       {isSpotFull && (
-        <div className="bg-red-100 text-red-800 p-3 rounded-md text-center">
+        <div className="bg-red-50 text-red-600 p-3.5 rounded-xl text-center mt-6 text-sm font-bold flex items-center justify-center gap-2 border border-red-100">
           Spot sudah penuh
-        </div>
-      )}
-
-      {bookingActive && availableKelas.length === 0 && !isSpotFull && (
-        <div className="bg-gray-100 text-gray-600 p-3 rounded-md text-center">
-          Semua kelas sudah memilih spot
         </div>
       )}
     </div>

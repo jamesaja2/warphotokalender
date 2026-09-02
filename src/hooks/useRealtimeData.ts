@@ -34,17 +34,10 @@ export function useRealtimeData() {
       }
     }, 2000) // Update setiap 2 detik (tidak 1 detik)
     
-    // Update active users every 10 seconds
-    const userInterval = setInterval(() => {
-      if (mounted) {
-        updateActiveUsers()
-      }
-    }, 10000)
-    
+    // Remove user interval to save egress
     return () => {
       cleanup()
       clearInterval(statusInterval)
-      clearInterval(userInterval)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mounted, settings, currentTime]) // Add currentTime to dependency
@@ -172,124 +165,53 @@ export function useRealtimeData() {
   }
 
   function setupRealtimeSubscriptions() {
-    // Subscribe to spots changes
-    const spotsSubscription = supabase
-      .channel('public:spots')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'spots'
-      }, (payload) => {
-        console.log('Spots changed:', payload)
-        if (payload.eventType === 'UPDATE') {
-          // Update specific spot immediately
-          setSpots(prev => prev.map(spot => 
-            spot.id === payload.new.id ? payload.new as Spot : spot
-          ))
-        } else if (payload.eventType === 'INSERT') {
-          setSpots(prev => [...prev, payload.new as Spot])
-        } else if (payload.eventType === 'DELETE') {
-          setSpots(prev => prev.filter(spot => spot.id !== payload.old.id))
-        }
-      })
-      .subscribe()
-
-    // Subscribe to kelas changes
-    const kelasSubscription = supabase
-      .channel('public:kelas')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'kelas'
-      }, (payload) => {
-        console.log('Kelas changed:', payload)
-        if (payload.eventType === 'UPDATE') {
-          // Update specific kelas immediately
-          setKelas(prev => prev.map(k => 
-            k.id === payload.new.id ? payload.new as Kelas : k
-          ))
-        } else if (payload.eventType === 'INSERT') {
-          setKelas(prev => [...prev, payload.new as Kelas])
-        } else if (payload.eventType === 'DELETE') {
-          setKelas(prev => prev.filter(k => k.id !== payload.old.id))
-        }
-      })
-      .subscribe()
-
-    // Subscribe to settings changes
-    const settingsSubscription = supabase
-      .channel('public:settings')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'settings'
-      }, (payload) => {
-        console.log('Settings changed:', payload)
-        if (payload.eventType === 'UPDATE') {
-          setSettings(prev => prev.map(s => 
-            s.key === payload.new.key ? payload.new as Settings : s
-          ))
-          // Update system status immediately if booking time changed
-          if (payload.new.key === 'booking_start_time') {
-            const now = new Date()
-            updateSystemStatus(settings.map(s => 
-              s.key === payload.new.key ? payload.new as Settings : s
-            ), now)
+    // Combine all subscriptions into a single channel to save Egress
+    const mainChannel = supabase
+      .channel('public-db-changes')
+      .on('postgres_changes', { event: '*', schema: 'public' }, (payload) => {
+        console.log('Database changed:', payload)
+        
+        if (payload.table === 'spots') {
+          if (payload.eventType === 'UPDATE') {
+            setSpots(prev => prev.map(spot => spot.id === payload.new.id ? payload.new as Spot : spot))
+          } else if (payload.eventType === 'INSERT') {
+            setSpots(prev => [...prev, payload.new as Spot])
+          } else if (payload.eventType === 'DELETE') {
+            setSpots(prev => prev.filter(spot => spot.id !== payload.old.id))
           }
-        } else if (payload.eventType === 'INSERT') {
-          setSettings(prev => [...prev, payload.new as Settings])
+        } 
+        else if (payload.table === 'kelas') {
+          if (payload.eventType === 'UPDATE') {
+            setKelas(prev => prev.map(k => k.id === payload.new.id ? payload.new as Kelas : k))
+          } else if (payload.eventType === 'INSERT') {
+            setKelas(prev => [...prev, payload.new as Kelas])
+          } else if (payload.eventType === 'DELETE') {
+            setKelas(prev => prev.filter(k => k.id !== payload.old.id))
+          }
+        }
+        else if (payload.table === 'settings') {
+          if (payload.eventType === 'UPDATE') {
+            setSettings(prev => prev.map(s => s.key === payload.new.key ? payload.new as Settings : s))
+            if (payload.new.key === 'booking_start_time') {
+              updateSystemStatus(settings.map(s => s.key === payload.new.key ? payload.new as Settings : s), new Date())
+            }
+          } else if (payload.eventType === 'INSERT') {
+            setSettings(prev => [...prev, payload.new as Settings])
+          }
         }
       })
       .subscribe()
-
-    // Setup presence tracking for active users
-    const presenceChannel = supabase
-      .channel('online-users')
-      .on('presence', { event: 'sync' }, () => {
-        const state = presenceChannel.presenceState()
-        const onlineUsers = Object.keys(state).length
-        setSystemStatus(prev => ({
-          ...prev,
-          active_users: onlineUsers,
-          queue_length: Math.max(0, onlineUsers - 30)
-        }))
-      })
-      .on('presence', { event: 'join' }, ({ key, newPresences }) => {
-        console.log('User joined:', key, newPresences)
-      })
-      .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
-        console.log('User left:', key, leftPresences)
-      })
-      .subscribe(async (status) => {
-        if (status === 'SUBSCRIBED') {
-          // Track this user as online
-          const userId = Math.random().toString(36).substring(2, 15)
-          await presenceChannel.track({
-            user_id: userId,
-            online_at: new Date().toISOString(),
-          })
-        }
-      })
 
     return () => {
-      supabase.removeChannel(spotsSubscription)
-      supabase.removeChannel(kelasSubscription)
-      supabase.removeChannel(settingsSubscription)
-      supabase.removeChannel(presenceChannel)
+      supabase.removeChannel(mainChannel)
     }
   }
 
-  async function bookSpot(spotId: number, kelasId: number): Promise<{ success: boolean; message: string }> {
+  async function bookSpot(spotId: number): Promise<{ success: boolean; message: string }> {
     try {
       // Check if booking is active
       if (!systemStatus.booking_active) {
         return { success: false, message: 'Waktu booking belum dimulai!' }
-      }
-
-      // Check if class already booked
-      const selectedKelas = kelas.find(k => k.id === kelasId)
-      if (selectedKelas?.spot_id) {
-        return { success: false, message: 'Kelas sudah memilih spot!' }
       }
 
       // Check spot capacity
@@ -302,22 +224,6 @@ export function useRealtimeData() {
         return { success: false, message: 'Spot sudah penuh!' }
       }
 
-      // Optimistic update - update UI immediately for instant feedback
-      const oldSpotState = [...spots]
-      const oldKelasState = [...kelas]
-      
-      setSpots(prev => prev.map(spot => 
-        spot.id === spotId 
-          ? { ...spot, chosen_by: [...spot.chosen_by, selectedKelas?.name || kelasId.toString()] }
-          : spot
-      ))
-      
-      setKelas(prev => prev.map(k => 
-        k.id === kelasId 
-          ? { ...k, spot_id: spotId }
-          : k
-      ))
-
       // Perform booking transaction
       const response = await fetch('/api/book-spot', {
         method: 'POST',
@@ -325,18 +231,13 @@ export function useRealtimeData() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          spotId,
-          kelasId,
-          kelasName: selectedKelas?.name || ''
+          spotId
         })
       })
 
       const result = await response.json()
 
       if (!response.ok) {
-        // Revert optimistic update if booking failed
-        setSpots(oldSpotState)
-        setKelas(oldKelasState)
         return { success: false, message: result.error || 'Gagal melakukan booking' }
       }
 
