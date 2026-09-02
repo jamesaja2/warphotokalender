@@ -15,8 +15,25 @@ export default function Home() {
   const [estimatedWaitTime, setEstimatedWaitTime] = useState(0)
   const [mounted, setMounted] = useState(false)
   const [showBookingAlert, setShowBookingAlert] = useState(false)
+  const [studentInfo, setStudentInfo] = useState<{name: string, kelas_raw: string, absen: string} | null>(null)
+  const [studentError, setStudentError] = useState<string | null>(null)
   
   const { data: userSession, status } = useSession()
+
+  useEffect(() => {
+    if (status === 'authenticated') {
+      fetch('/api/student-info')
+        .then(res => res.json())
+        .then(data => {
+          if (data.error) {
+            setStudentError(data.error)
+          } else {
+            setStudentInfo(data)
+          }
+        })
+        .catch(err => setStudentError('Gagal memuat data siswa'))
+    }
+  }, [status])
 
   const handleLogout = async () => {
     await signOut({ callbackUrl: '/login' })
@@ -140,6 +157,22 @@ export default function Home() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        {/* Student Greeting */}
+        {studentInfo && (
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-xl p-5 mb-8 shadow-sm">
+            <h2 className="text-xl font-bold text-blue-900">Hai {studentInfo.name}.</h2>
+            <p className="text-blue-700 mt-1 font-medium">Kelas {studentInfo.kelas_raw}, Nomor absen {studentInfo.absen}</p>
+          </div>
+        )}
+        
+        {studentError && (
+          <div className="bg-red-50 border border-red-200 rounded-xl p-5 mb-8 shadow-sm">
+            <h2 className="text-lg font-bold text-red-800">Perhatian</h2>
+            <p className="text-red-700 mt-1">{studentError}</p>
+          </div>
+        )}
+
         {/* Booking Active Alert */}
         {showBookingAlert && (
           <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6 animate-pulse">
