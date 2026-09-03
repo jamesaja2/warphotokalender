@@ -137,11 +137,11 @@ export default function AdminPage() {
         .insert({ name, capacity, chosen_by: [] })
 
       if (error) throw error
-      setMessage('Tema berhasil ditambahkan!')
+      setMessage('Tempat Foto berhasil ditambahkan!')
       fetchData()
     } catch (error) {
       console.error('Error adding spot:', error)
-      setMessage('Error menambahkan tema!')
+      setMessage('Error menambahkan tempat foto!')
     } finally {
       setLoading(false)
     }
@@ -277,7 +277,7 @@ export default function AdminPage() {
             <div className="flex items-center gap-3">
               <Settings className="w-8 h-8 text-green-600" />
               <div>
-                <p className="text-sm text-gray-600">Total Tema</p>
+                <p className="text-sm text-gray-600">Total Tempat Foto</p>
                 <p className="text-2xl font-bold">{spots.length}</p>
               </div>
             </div>
@@ -353,7 +353,7 @@ export default function AdminPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
           {/* Add Spot */}
           <div className="bg-white rounded-lg shadow-lg p-6">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">Tambah Tema</h3>
+            <h3 className="text-lg font-bold text-gray-900 mb-4">Tambah Tempat Foto</h3>
             <form onSubmit={(e) => {
               e.preventDefault()
               const formData = new FormData(e.target as HTMLFormElement)
@@ -368,7 +368,7 @@ export default function AdminPage() {
                 <input
                   name="spot_name"
                   type="text"
-                  placeholder="Nama Tema (e.g., Vintage)"
+                  placeholder="Nama Tempat Foto (e.g., Studio A)"
                   className="w-full p-3 border border-gray-300 rounded-md"
                   required
                 />
@@ -386,7 +386,7 @@ export default function AdminPage() {
                   disabled={loading}
                   className="w-full bg-green-600 text-white py-3 rounded-md hover:bg-green-700 disabled:opacity-50"
                 >
-                  Tambah Tema
+                  Tambah Tempat Foto
                 </button>
               </div>
             </form>
@@ -428,7 +428,7 @@ export default function AdminPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Spots Table */}
           <div className="bg-white rounded-lg shadow-lg p-6">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">Daftar Tema</h3>
+            <h3 className="text-lg font-bold text-gray-900 mb-4">Daftar Tempat Foto</h3>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>

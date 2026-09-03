@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "WAR Tema Kalender",
-  description: "Sistem real-time untuk pemilihan tema",
+  title: "War Tempat Foto Kalender",
+  description: "Sistem real-time untuk pemilihan tempat foto kalender",
 };
 
 export default function RootLayout({

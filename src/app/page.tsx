@@ -102,7 +102,7 @@ export default function Home() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Memuat sistem WAR Tema Kalender...</p>
+          <p className="text-gray-600">Memuat sistem War Tempat Foto Kalender...</p>
         </div>
       </div>
     )
@@ -130,10 +130,10 @@ export default function Home() {
             </div>
             <div>
               <h1 className="text-2xl sm:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-600 tracking-tight">
-                WAR Tema Kalender
+                War Tempat Foto Kalender
               </h1>
               <p className="text-sm sm:text-base text-gray-500 font-medium">
-                Pilih tema terbaik untuk kelas Anda
+                Pilih tempat foto terbaik untuk kelas Anda
               </p>
             </div>
           </div>
@@ -185,7 +185,7 @@ export default function Home() {
               <div>
                 <h4 className="text-green-800 font-semibold">Booking Sekarang Aktif!</h4>
                 <p className="text-green-700 text-sm mt-1">
-                  Anda sekarang bisa mulai memilih tema.
+                  Anda sekarang bisa mulai memilih tempat foto.
                 </p>
               </div>
               <button 
@@ -239,7 +239,7 @@ export default function Home() {
             <div className="flex items-center gap-3">
               <Camera className="w-8 h-8 text-green-600" />
               <div>
-                <p className="text-sm text-gray-600">Total Tema</p>
+                <p className="text-sm text-gray-600">Total Tempat Foto</p>
                 <p className="text-2xl font-bold text-gray-900">{spots.length}</p>
               </div>
             </div>
@@ -268,12 +268,12 @@ export default function Home() {
 
         {/* Spots Grid */}
         <div className="mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">Daftar Tema</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">Daftar Tempat Foto</h2>
           
           {spots.length === 0 ? (
             <div className="bg-white rounded-lg shadow p-8 text-center">
               <Camera className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600">Belum ada tema yang tersedia</p>
+              <p className="text-gray-600">Belum ada tempat foto yang tersedia</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -314,8 +314,8 @@ export default function Home() {
         <div className="mt-8 bg-blue-50 rounded-lg p-6">
           <h3 className="font-semibold text-blue-800 mb-3">Petunjuk Penggunaan:</h3>
           <ul className="text-sm text-blue-700 space-y-1">
-            <li>• Setiap kelas hanya bisa memilih SATU tema</li>
-            <li>• Setiap tema memiliki kapasitas terbatas</li>
+            <li>• Setiap kelas hanya bisa memilih SATU tempat foto</li>
+            <li>• Setiap tempat foto memiliki kapasitas terbatas</li>
             <li>• Booking hanya bisa dilakukan pada waktu yang telah ditentukan</li>
             <li>• Pilihan bersifat final dan tidak dapat diubah</li>
             <li>• Sistem akan update secara real-time</li>
@@ -327,7 +327,7 @@ export default function Home() {
       <footer className="bg-white border-t mt-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <p className="text-center text-gray-600">
-            WAR Tema Kalender
+            War Tempat Foto Kalender
           </p>
         </div>
       </footer>
