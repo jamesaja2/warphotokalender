@@ -19,39 +19,33 @@ export default function RealtimeClock({ bookingStartTime, onBookingStart }: Real
     setMounted(true)
   }, [])
 
-  // Update countdown and booking status
+  // Kalkulasi countdown setiap kali currentTime berubah (1 detik sekali)
   useEffect(() => {
-    if (!mounted || !currentTime) return
+    if (!mounted || !currentTime || !bookingStartTime) return
 
-    const timer = setInterval(() => {
-      // currentTime adalah UTC dari server, gunakan toLocaleString untuk WIB
-      if (bookingStartTime) {
-        // Buat Date object WIB untuk perbandingan yang akurat
-        const nowWIB = new Date(currentTime.toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' }))
-        const bookingTimeUTC = new Date(bookingStartTime)
-        const bookingTimeWIB = new Date(bookingTimeUTC.toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' }))
-        const timeDiff = bookingTimeWIB.getTime() - nowWIB.getTime()
+    // currentTime adalah UTC dari server, gunakan toLocaleString untuk WIB
+    const nowWIB = new Date(currentTime.toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' }))
+    const bookingTimeUTC = new Date(bookingStartTime)
+    const bookingTimeWIB = new Date(bookingTimeUTC.toLocaleString('sv-SE', { timeZone: 'Asia/Jakarta' }))
+    const timeDiff = bookingTimeWIB.getTime() - nowWIB.getTime()
 
-        if (timeDiff > 0) {
-          // Before booking time
-          const hours = Math.floor(timeDiff / (1000 * 60 * 60))
-          const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60))
-          const seconds = Math.floor((timeDiff % (1000 * 60)) / 1000)
+    if (timeDiff > 0) {
+      // Before booking time
+      const hours = Math.floor(timeDiff / (1000 * 60 * 60))
+      const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60))
+      const seconds = Math.floor((timeDiff % (1000 * 60)) / 1000)
 
-          setTimeUntilBooking(`${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`)
-          setIsBookingActive(false)
-        } else {
-          // Booking time has passed
-          if (!isBookingActive) {
-            setIsBookingActive(true)
-            onBookingStart?.()
-          }
-          setTimeUntilBooking('BOOKING AKTIF!')
-        }
+      setTimeUntilBooking(`${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`)
+      
+      if (isBookingActive) setIsBookingActive(false)
+    } else {
+      // Booking time has passed
+      setTimeUntilBooking('BOOKING AKTIF!')
+      if (!isBookingActive) {
+        setIsBookingActive(true)
+        onBookingStart?.()
       }
-    }, 1000)
-
-    return () => clearInterval(timer)
+    }
   }, [mounted, currentTime, bookingStartTime, isBookingActive, onBookingStart])
 
   // Don't render time until mounted to avoid hydration mismatch
@@ -101,13 +95,6 @@ export default function RealtimeClock({ bookingStartTime, onBookingStart }: Real
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit'
-  })
-  
-  // Debug log untuk troubleshooting jam
-  console.log('🕐 RealtimeClock Debug (simple):', {
-    serverUTC: currentTime.toISOString(),
-    jakartaString: jakartaTimeString,
-    localWIB: new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' })
   })
 
   return (
