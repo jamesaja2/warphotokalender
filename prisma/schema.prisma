@@ -1,0 +1,59 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Spot {
+  id        Int       @id @default(autoincrement())
+  name      String
+  capacity  Int       @default(1)
+  chosen_by String[]  @default([])
+  created_at DateTime @default(now())
+  updated_at DateTime @default(now())
+
+  kelas     Kelas[]
+  bookings  Booking[]
+
+  @@map("spots")
+}
+
+model Kelas {
+  id        Int       @id @default(autoincrement())
+  name      String    @unique
+  spot_id   Int?
+  created_at DateTime @default(now())
+  updated_at DateTime @default(now())
+
+  spot      Spot?     @relation(fields: [spot_id], references: [id], onDelete: SetNull)
+  booking   Booking?
+
+  @@map("kelas")
+}
+
+model Settings {
+  key       String    @id
+  value     String
+  created_at DateTime @default(now())
+  updated_at DateTime @default(now())
+
+  @@map("settings")
+}
+
+model Booking {
+  id         BigInt   @id @default(autoincrement())
+  spot_id    Int
+  kelas_id   Int      @unique
+  kelas_name String
+  user_name  String
+  user_email String
+  created_at DateTime @default(now())
+
+  spot       Spot     @relation(fields: [spot_id], references: [id])
+  kelas      Kelas    @relation(fields: [kelas_id], references: [id])
+
+  @@map("bookings")
+}

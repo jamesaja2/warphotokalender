@@ -1,7 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { useEffect, useState, useCallback } from 'react'
 import { Spot, Kelas, Settings, SystemStatus } from '@/types/database'
 import { useServerTime } from './useServerTime'
 
@@ -19,59 +18,48 @@ export function useRealtimeData() {
   const [loading, setLoading] = useState(true)
   const [mounted, setMounted] = useState(false)
 
-  const supabase = createClient()
+  const fetchInitialData = useCallback(async () => {
+    try {
+      const response = await fetch('/api/data')
+      const result = await response.json()
+      
+      if (result.success) {
+        setSpots(result.data.spots)
+        setKelas(result.data.kelas)
+        setSettings(result.data.settings)
+        updateSystemStatus(result.data.settings)
+      }
+    } catch (error) {
+      console.error('Error fetching data:', error)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
 
   useEffect(() => {
     setMounted(true)
     fetchInitialData()
-    const cleanup = setupRealtimeSubscriptions()
     
-    // Setup periodic updates for system status using server time
+    // Polling API every 2 seconds instead of WebSockets
+    const pollingInterval = setInterval(() => {
+      if (mounted) {
+        fetchInitialData()
+      }
+    }, 2000)
+    
     const statusInterval = setInterval(() => {
-      // Update booking status setiap 2 detik untuk menghindari glitch
       if (settings.length > 0 && mounted && currentTime) {
         updateSystemStatus(settings, currentTime)
+        updateActiveUsers() // Simulate active users
       }
-    }, 2000) // Update setiap 2 detik (tidak 1 detik)
+    }, 2000)
     
-    // Remove user interval to save egress
     return () => {
-      cleanup()
+      clearInterval(pollingInterval)
       clearInterval(statusInterval)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mounted, settings, currentTime]) // Add currentTime to dependency
+  }, [mounted, settings.length, currentTime, fetchInitialData])
 
-  // Separate effect for settings changes to update status immediately
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => {
-    if (settings.length > 0 && mounted && currentTime) {
-      updateSystemStatus(settings, currentTime)
-    }
-  }, [settings, mounted, currentTime]) // Add currentTime
-
-  async function fetchInitialData() {
-    try {
-      const [spotsResult, kelasResult, settingsResult] = await Promise.all([
-        supabase.from('spots').select('*').order('id'),
-        supabase.from('kelas').select('*').order('name'),
-        supabase.from('settings').select('*')
-      ])
-
-      if (spotsResult.data) setSpots(spotsResult.data)
-      if (kelasResult.data) setKelas(kelasResult.data)
-      if (settingsResult.data) setSettings(settingsResult.data)
-
-      // Update system status
-      updateSystemStatus(settingsResult.data || [])
-    } catch (error) {
-      console.error('Error fetching initial data:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // Helper: konversi UTC Date ke WIB
   function toJakartaTime(utcDate: Date) {
     return new Date(utcDate.getTime() + (7 * 60 * 60 * 1000));
   }
@@ -82,45 +70,23 @@ export function useRealtimeData() {
 
     let isBookingActive = false
     if (bookingTime) {
-      // currentTime adalah UTC dari server, konversi ke WIB
       const nowJakarta = toJakartaTime(utcTime || new Date())
-      // bookingTime dari database (UTC), konversi ke WIB
       const startTimeUTC = new Date(bookingTime)
       const startTimeJakarta = toJakartaTime(startTimeUTC)
-
-      // Debug logs untuk troubleshooting
-      console.log('=== BOOKING TIME CHECK (UTC→WIB) ===')
-      console.log('Server UTC time:', (utcTime || new Date()).toISOString())
-      console.log('Current WIB time:', nowJakarta.toISOString())
-      console.log('Booking time from DB (UTC):', bookingTime)
-      console.log('Booking time WIB:', startTimeJakarta.toISOString())
-      console.log('Should booking be active?', nowJakarta >= startTimeJakarta)
-      console.log('Time difference (minutes):', (nowJakarta.getTime() - startTimeJakarta.getTime()) / (1000 * 60))
-      console.log('========================')
 
       isBookingActive = nowJakarta >= startTimeJakarta
     }
 
-    // Force re-render by using functional update to ensure component updates
     setSystemStatus(prev => {
-      // Only update if there's actually a change to prevent unnecessary renders
-      // Tambah delay kecil untuk mencegah glitch rapid switching
       if (prev.booking_active !== isBookingActive || prev.booking_start_time !== (bookingTime || null)) {
-        console.log('*** BOOKING STATUS CHANGED ***')
-        console.log('Previous status:', prev.booking_active)
-        console.log('New status:', isBookingActive)
-        console.log('******************************')
-        
-        // Delay update untuk mencegah glitch
         setTimeout(() => {
           setSystemStatus(current => ({
             ...current,
             booking_active: isBookingActive,
             booking_start_time: bookingTime || null
           }))
-        }, 100) // 100ms delay
-        
-        return prev // Return unchanged untuk sementara
+        }, 100)
+        return prev
       }
       return prev
     })
@@ -128,28 +94,23 @@ export function useRealtimeData() {
 
   async function updateActiveUsers() {
     try {
-      // More realistic simulation - users fluctuate based on time
       const now = new Date()
       const hour = now.getHours()
-      const minute = now.getMinutes()
       
-      // Peak hours simulation (lunch: 11-13, evening: 18-20)
       let baseUsers = 15
       if ((hour >= 11 && hour <= 13) || (hour >= 18 && hour <= 20)) {
-        baseUsers = 40 // Peak hours
+        baseUsers = 40
       } else if (hour >= 7 && hour <= 17) {
-        baseUsers = 25 // Normal hours
+        baseUsers = 25
       } else {
-        baseUsers = 10 // Off hours
+        baseUsers = 10
       }
       
-      // Add some randomness
-      const variation = Math.floor(Math.random() * 20) - 10 // ±10 users
+      const variation = Math.floor(Math.random() * 20) - 10
       const totalUsers = Math.max(5, baseUsers + variation)
       
-      // Queue when booking is active and users > 30
       const queueLength = (systemStatus.booking_active && totalUsers > 30) 
-        ? Math.floor(totalUsers * 0.3) // 30% of users in queue during peak
+        ? Math.floor(totalUsers * 0.3) 
         : 0
       
       setSystemStatus(prev => ({
@@ -157,64 +118,17 @@ export function useRealtimeData() {
         active_users: totalUsers,
         queue_length: queueLength
       }))
-      
-      console.log(`Active users: ${totalUsers}, Queue: ${queueLength}, Time: ${hour}:${minute}`)
     } catch (error) {
       console.error('Error updating active users:', error)
     }
   }
 
-  function setupRealtimeSubscriptions() {
-    // Combine all subscriptions into a single channel to save Egress
-    const mainChannel = supabase
-      .channel('public-db-changes')
-      .on('postgres_changes', { event: '*', schema: 'public' }, (payload) => {
-        console.log('Database changed:', payload)
-        
-        if (payload.table === 'spots') {
-          if (payload.eventType === 'UPDATE') {
-            setSpots(prev => prev.map(spot => spot.id === payload.new.id ? payload.new as Spot : spot))
-          } else if (payload.eventType === 'INSERT') {
-            setSpots(prev => [...prev, payload.new as Spot])
-          } else if (payload.eventType === 'DELETE') {
-            setSpots(prev => prev.filter(spot => spot.id !== payload.old.id))
-          }
-        } 
-        else if (payload.table === 'kelas') {
-          if (payload.eventType === 'UPDATE') {
-            setKelas(prev => prev.map(k => k.id === payload.new.id ? payload.new as Kelas : k))
-          } else if (payload.eventType === 'INSERT') {
-            setKelas(prev => [...prev, payload.new as Kelas])
-          } else if (payload.eventType === 'DELETE') {
-            setKelas(prev => prev.filter(k => k.id !== payload.old.id))
-          }
-        }
-        else if (payload.table === 'settings') {
-          if (payload.eventType === 'UPDATE') {
-            setSettings(prev => prev.map(s => s.key === payload.new.key ? payload.new as Settings : s))
-            if (payload.new.key === 'booking_start_time') {
-              updateSystemStatus(settings.map(s => s.key === payload.new.key ? payload.new as Settings : s), new Date())
-            }
-          } else if (payload.eventType === 'INSERT') {
-            setSettings(prev => [...prev, payload.new as Settings])
-          }
-        }
-      })
-      .subscribe()
-
-    return () => {
-      supabase.removeChannel(mainChannel)
-    }
-  }
-
   async function bookSpot(spotId: number): Promise<{ success: boolean; message: string }> {
     try {
-      // Check if booking is active
       if (!systemStatus.booking_active) {
         return { success: false, message: 'Waktu booking belum dimulai!' }
       }
 
-      // Check spot capacity
       const selectedSpot = spots.find(s => s.id === spotId)
       if (!selectedSpot) {
         return { success: false, message: 'Spot tidak ditemukan!' }
@@ -224,15 +138,12 @@ export function useRealtimeData() {
         return { success: false, message: 'Spot sudah penuh!' }
       }
 
-      // Perform booking transaction
       const response = await fetch('/api/book-spot', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          spotId
-        })
+        body: JSON.stringify({ spotId })
       })
 
       const result = await response.json()
@@ -240,6 +151,9 @@ export function useRealtimeData() {
       if (!response.ok) {
         return { success: false, message: result.error || 'Gagal melakukan booking' }
       }
+
+      // Force instant refresh after successful booking
+      fetchInitialData()
 
       return { success: true, message: result.message || 'Berhasil booking spot!' }
     } catch (error) {

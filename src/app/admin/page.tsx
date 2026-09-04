@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { Settings, Clock, Users, RefreshCw, Shield, AlertTriangle } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { Spot, Kelas } from '@/types/database'
 
@@ -15,19 +14,16 @@ export default function AdminPage() {
   const [kelas, setKelas] = useState<Kelas[]>([])
   const [message, setMessage] = useState('')
   
-  const supabase = createClient()
   const router = useRouter()
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
-    // Check if already authenticated (simple session check)
     const isAuth = localStorage.getItem('admin_authenticated') === 'true'
     setIsAuthenticated(isAuth)
     
     if (isAuth) {
       fetchData()
     }
-  }, []) // Empty dependency array is intentional for initial auth check
+  }, []) 
 
   async function handleLogin() {
     setLoading(true)
@@ -56,16 +52,15 @@ export default function AdminPage() {
   async function fetchData() {
     setLoading(true)
     try {
-      const [spotsResult, kelasResult, settingsResult] = await Promise.all([
-        supabase.from('spots').select('*').order('id'),
-        supabase.from('kelas').select('*').order('name'),
-        supabase.from('settings').select('*').eq('key', 'booking_start_time')
-      ])
-
-      if (spotsResult.data) setSpots(spotsResult.data)
-      if (kelasResult.data) setKelas(kelasResult.data)
-      if (settingsResult.data && settingsResult.data[0]) {
-        setBookingTime(settingsResult.data[0].value)
+      const response = await fetch('/api/admin')
+      const result = await response.json()
+      
+      if (result.spots) setSpots(result.spots)
+      if (result.kelas) setKelas(result.kelas)
+      
+      const timeSetting = result.settings?.find((s: any) => s.key === 'booking_start_time')
+      if (timeSetting) {
+        setBookingTime(timeSetting.value)
       }
     } catch (error) {
       console.error('Error fetching data:', error)
@@ -83,14 +78,13 @@ export default function AdminPage() {
 
     setLoading(true)
     try {
-      const { error } = await supabase
-        .from('settings')
-        .upsert({
-          key: 'booking_start_time',
-          value: bookingTime
-        })
+      const response = await fetch('/api/admin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'update_booking_time', data: { bookingTime } })
+      })
 
-      if (error) throw error
+      if (!response.ok) throw new Error('Failed')
       setMessage('Waktu booking berhasil diupdate!')
     } catch (error) {
       console.error('Error updating booking time:', error)
@@ -107,17 +101,13 @@ export default function AdminPage() {
 
     setLoading(true)
     try {
-      // Reset spot chosen_by
-      const resetSpotsPromises = spots.map(spot =>
-        supabase.from('spots').update({ chosen_by: [] }).eq('id', spot.id)
-      )
+      const response = await fetch('/api/admin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'reset_bookings' })
+      })
 
-      // Reset kelas spot_id
-      const resetKelasPromises = kelas.map(k =>
-        supabase.from('kelas').update({ spot_id: null }).eq('id', k.id)
-      )
-
-      await Promise.all([...resetSpotsPromises, ...resetKelasPromises])
+      if (!response.ok) throw new Error('Failed')
       
       setMessage('Semua booking berhasil direset!')
       fetchData()
@@ -132,11 +122,13 @@ export default function AdminPage() {
   async function addSpot(name: string, capacity: number) {
     setLoading(true)
     try {
-      const { error } = await supabase
-        .from('spots')
-        .insert({ name, capacity, chosen_by: [] })
+      const response = await fetch('/api/admin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'add_spot', data: { name, capacity } })
+      })
 
-      if (error) throw error
+      if (!response.ok) throw new Error('Failed')
       setMessage('Tempat Foto berhasil ditambahkan!')
       fetchData()
     } catch (error) {
@@ -150,11 +142,13 @@ export default function AdminPage() {
   async function addKelas(name: string) {
     setLoading(true)
     try {
-      const { error } = await supabase
-        .from('kelas')
-        .insert({ name, spot_id: null })
+      const response = await fetch('/api/admin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'add_kelas', data: { name } })
+      })
 
-      if (error) throw error
+      if (!response.ok) throw new Error('Failed')
       setMessage('Kelas berhasil ditambahkan!')
       fetchData()
     } catch (error) {
@@ -226,7 +220,6 @@ export default function AdminPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex justify-between items-center">
@@ -253,7 +246,6 @@ export default function AdminPage() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Message */}
         {message && (
           <div className={`mb-6 p-4 rounded-md ${
             message.includes('berhasil') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
@@ -262,7 +254,6 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <div className="bg-white p-6 rounded-lg shadow">
             <div className="flex items-center gap-3">
@@ -302,7 +293,6 @@ export default function AdminPage() {
           </div>
         </div>
 
-        {/* Booking Time Control */}
         <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
           <h2 className="text-xl font-bold text-gray-900 mb-4">Pengaturan Waktu Booking</h2>
           <div className="flex gap-4 items-end">
@@ -327,7 +317,6 @@ export default function AdminPage() {
           </div>
         </div>
 
-        {/* Reset Controls */}
         <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
           <h2 className="text-xl font-bold text-gray-900 mb-4">Kontrol Reset</h2>
           <div className="flex gap-4">
@@ -349,9 +338,7 @@ export default function AdminPage() {
           </div>
         </div>
 
-        {/* Quick Add Forms */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-          {/* Add Spot */}
           <div className="bg-white rounded-lg shadow-lg p-6">
             <h3 className="text-lg font-bold text-gray-900 mb-4">Tambah Tempat Foto</h3>
             <form onSubmit={(e) => {
@@ -392,7 +379,6 @@ export default function AdminPage() {
             </form>
           </div>
 
-          {/* Add Kelas */}
           <div className="bg-white rounded-lg shadow-lg p-6">
             <h3 className="text-lg font-bold text-gray-900 mb-4">Tambah Kelas</h3>
             <form onSubmit={(e) => {
@@ -424,9 +410,7 @@ export default function AdminPage() {
           </div>
         </div>
 
-        {/* Current Data Tables */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Spots Table */}
           <div className="bg-white rounded-lg shadow-lg p-6">
             <h3 className="text-lg font-bold text-gray-900 mb-4">Daftar Tempat Foto</h3>
             <div className="overflow-x-auto">
@@ -451,7 +435,6 @@ export default function AdminPage() {
             </div>
           </div>
 
-          {/* Kelas Table */}
           <div className="bg-white rounded-lg shadow-lg p-6">
             <h3 className="text-lg font-bold text-gray-900 mb-4">Status Kelas</h3>
             <div className="overflow-x-auto">
