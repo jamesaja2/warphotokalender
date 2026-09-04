@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: NextRequest) {
   try {
     const [spots, kelas, settings] = await Promise.all([
@@ -38,10 +40,10 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: true })
 
       case 'reset_bookings':
-        await prisma.$transaction(async (tx) => {
+        await prisma.$transaction(async (tx: any) => {
           // Reset spots chosen_by
           await tx.spot.updateMany({
-            data: { chosen_by: [] }
+            data: { chosen_by: { set: [] } }
           })
           
           // Reset kelas spot_id

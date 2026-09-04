@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
 
     // 3. Perform atomic booking transaction using Prisma
     try {
-      const result = await prisma.$transaction(async (tx) => {
+      const result = await prisma.$transaction(async (tx: any) => {
         // Lock and find Spot
         // Prisma doesn't have native SELECT FOR UPDATE across all dialects via easy syntax,
         // but we can check state and fail safely, or use $queryRaw if needed.
